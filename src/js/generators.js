@@ -4,11 +4,19 @@
  * @param allowedTypes iterable of classes
  * @param maxLevel max character level
  * @returns Character type children (ex. Magician, Bowman, etc)
+ *
  */
+
 export function* characterGenerator(allowedTypes, maxLevel) {
-  // TODO: write logic here
+  const level = Math.floor(1 + Math.random() * maxLevel);
+  const type = Math.floor(0 + Math.random() * allowedTypes.length);
+  yield new allowedTypes[type](level);
 }
 
 export function generateTeam(allowedTypes, maxLevel, characterCount) {
-  // TODO: write logic here
+  const team = [];
+  for (let i = 0; i < characterCount; i += 1) {
+    team.push(characterGenerator(allowedTypes, maxLevel).next().value);
+  }
+  return team;
 }

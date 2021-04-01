@@ -1,3 +1,7 @@
+/** Character, привязанный к координате на поле. Обратите внимание, что несмотря на то,
+ * что поле выглядит как двумерный массив, внутри оно хранится как одномерный
+ */
+
 import Character from './Character';
 
 export default class PositionedCharacter {
