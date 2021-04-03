@@ -16,4 +16,15 @@ export default class Character {
       this.lordAi = false;
     }
   }
+
+  levelUp() {
+    if (this.health <= 0) {
+      return;
+    }
+    this.attack = Math.max(this.attack, Math.round(this.attack * (0.8 + this.health / 100)));
+    this.defence = Math.max(this.defence, Math.round(this.defence * (0.8 + this.health / 100)));
+    this.level += 1;
+    this.health += 80;
+    this.health = this.health < 100 ? this.health : 100;
+  }
 }

@@ -18,5 +18,6 @@ export function generateTeam(allowedTypes, maxLevel, characterCount) {
   for (let i = 0; i < characterCount; i += 1) {
     team.push(characterGenerator(allowedTypes, maxLevel).next().value);
   }
+  // ! characters should be upgraded according to their level?
   return team;
 }

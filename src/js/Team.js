@@ -1,6 +1,4 @@
 import { characterGenerator, generateTeam } from './generators';
-// ! как импортирвать все классы разом?
-// import Character from './Character';
 import Bowman from './Types/bowman';
 import Magician from './Types/magician';
 import Swordsman from './Types/swordsman';
