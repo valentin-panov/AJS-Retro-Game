@@ -1,3 +1,15 @@
+// ! tests
+/** 1) 4 utils.js - corners selection
+ * 2) Не забудьте написать тесты на то, что исключение выбрасывается при создании
+ * объекта класса Character и не выбрасывается, при создании объектов унаследованных классов.
+ * 3) Не забудьте написать тесты на тегированный шаблон tooltip
+ * 4) Не забудьте написать авто-тесты на функции/методы, которые лежат в
+ * основе п.1-4 (cursors)
+ * 5) Напишите авто-тест, с моком для метода load, который проверяет реакцию вашего
+ *  приложения на успешную и не успешную загрузку (при неуспешной загрузке
+ * должно выводиться сообщение через GamePlay - подумайте, как вы это будете тестировать).
+ */
+
 import themes from './themes';
 import cursors from './cursors';
 import GamePlay from './GamePlay';
@@ -27,7 +39,7 @@ export default class GameController {
     this.gamePlay.addNewGameListener(this.newGame.bind(this));
     this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
     // load game listen is active only after saving
-    this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
+    // this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
   }
 
   addCellListeners() {
