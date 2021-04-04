@@ -479,7 +479,7 @@ export default class GameController {
     });
     this.gameState.playerMove = !this.gameState.playerMove;
     if (this.gameState.positions.findIndex((item) => item.character.lordAi === true) === -1) {
-      if (this.gameState.level !== 1) {
+      if (this.gameState.level !== 4) {
         await this.levelUp();
       } else {
         this.endGame();
