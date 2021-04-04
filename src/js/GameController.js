@@ -71,6 +71,7 @@ export default class GameController {
     loadState.positions.forEach((item) => {
       this.gameState.occupiedPositions.add(item.position);
       Object.setPrototypeOf(item.character, Character.prototype);
+      // eslint-disable-next-line no-unused-expressions
       item.character.lordAi
         ? this.teamAi.characters.push(item.character)
         : this.teamUser.characters.push(item.character);
@@ -506,15 +507,16 @@ export default class GameController {
     this.gameState.playerMove = !this.gameState.playerMove;
     this.addCellListeners();
     if (this.gameState.positions.findIndex((item) => item.character.lordAi === true) === -1) {
-      GamePlay.showMessage(`Level ${this.gameState.level} cleared!`);
+      GamePlay.showMessage(`Уровень ${this.gameState.level} очищен!`);
       if (this.gameState.level !== 4) {
         await this.levelUp();
       } else {
+        GamePlay.showMessage(`Вы победили!`);
         this.endGame();
       }
     }
     if (this.gameState.positions.findIndex((item) => item.character.lordAi === false) === -1) {
-      GamePlay.showMessage('You loose the match');
+      GamePlay.showMessage('Вы проиграли!');
     }
   }
 }
