@@ -56,6 +56,8 @@ export default class GameController {
 
   newGame() {
     this.gameState = new GameState();
+    this.selectedChar = null;
+    this.selectedCell = null;
     this.teamsInit(this.gameState.level);
     this.gamePlay.drawUi(themes[this.gameState.level]);
     this.gamePlay.redrawPositions(this.gameState.positions);
@@ -79,6 +81,8 @@ export default class GameController {
 
     this.gameState = new GameState();
     this.gameState.level = loadState.level;
+    this.selectedChar = null;
+    this.selectedCell = null;
     this.teamAi.characters.length = 0;
     this.teamUser.characters.length = 0;
     this.gameState.positions = loadState.positions;
@@ -475,17 +479,19 @@ export default class GameController {
     });
     this.gameState.playerMove = !this.gameState.playerMove;
     if (this.gameState.positions.findIndex((item) => item.character.lordAi === true) === -1) {
-      if (this.gameState.level !== 4) {
+      if (this.gameState.level !== 1) {
         await this.levelUp();
       } else {
         this.endGame();
       }
-    }
-    if (this.gameState.positions.findIndex((item) => item.character.lordAi === false) === -1) {
+    } else if (
+      this.gameState.positions.findIndex((item) => item.character.lordAi === false) === -1
+    ) {
       GamePlay.showMessage('Вы проиграли!');
       this.newGame();
+    } else {
+      this.addCellListeners();
     }
-    this.addCellListeners();
   }
 
   /**
@@ -542,12 +548,13 @@ export default class GameController {
       (acc, prev) => acc + prev.character.health,
       0
     );
-    GamePlay.showMessage(`Вы победили co cчётом: ${this.gameState.userStats}`);
     for (let i = 0; i < 64; i += 1) {
       this.gamePlay.deselectCell(i);
     }
     this.selectedCell = null;
     this.selectedChar = null;
     this.removeCellListeners();
+    this.gamePlay.setCursor(cursors.notallowed);
+    GamePlay.showMessage(`Вы победили co cчётом: ${this.gameState.userStats}`);
   }
 }
