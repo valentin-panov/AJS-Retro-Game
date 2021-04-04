@@ -8,16 +8,15 @@ import Vampire from './Types/vampire';
 
 export default class Team {
   constructor(lord = 'ai', level = 1, count = 2) {
-    this.level = level;
     if (lord !== 'ai') {
       this.typos = [Bowman, Magician, Swordsman];
     } else {
       this.typos = [Daemon, Undead, Vampire];
     }
-    this.characters = generateTeam(this.typos, this.level, count);
+    this.characters = generateTeam(this.typos, level, count);
   }
 
-  addChar() {
-    this.characters.push(characterGenerator(this.typos, this.level).next().value);
+  addChar(level) {
+    this.characters.push(characterGenerator(this.typos, level).next().value);
   }
 }

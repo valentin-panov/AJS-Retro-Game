@@ -3,53 +3,55 @@ import cursors from './cursors';
 import GamePlay from './GamePlay';
 import GameState from './GameState';
 import Team from './Team';
+import Character from './Character';
 import PositionedCharacter from './PositionedCharacter';
 
 export default class GameController {
   constructor(gamePlay, stateService) {
-    // console.log(stateService);
     this.gamePlay = gamePlay || new GamePlay();
     this.stateService = stateService;
     this.gameState = new GameState();
   }
 
   init() {
+    // this.loadGame() ?
     this.teamsInit(this.gameState.level);
     this.gamePlay.drawUi(themes[this.gameState.level]);
     this.gamePlay.redrawPositions(this.gameState.positions);
-    this.addListeners();
-    // TODO: add event listeners to gamePlay events
+    this.addGameListeners();
+    this.addCellListeners();
     // TODO: load saved stated from stateService
   }
 
-  addListeners() {
-    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
-    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
-    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
+  addGameListeners() {
     this.gamePlay.addNewGameListener(this.newGame.bind(this));
     this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
     this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
   }
 
-  removeListeners() {
+  addCellListeners() {
+    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
+    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
+    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
+  }
+
+  removeCellListeners() {
     this.gamePlay.cellEnterListeners.length = 0;
     this.gamePlay.cellLeaveListeners.length = 0;
     this.gamePlay.cellClickListeners.length = 0;
   }
 
   newGame() {
-    /** if we need to store smth from previous gameState,
-     * just keep it in var and reassign to the new GameState
-     */
     this.gameState = new GameState();
     this.teamsInit(this.gameState.level);
     this.gamePlay.drawUi(themes[this.gameState.level]);
     this.gamePlay.redrawPositions(this.gameState.positions);
+    GamePlay.showMessage('Новая игра');
   }
 
   saveGame() {
     this.stateService.save(this.gameState);
-    console.log('saved');
+    GamePlay.showMessage('Игра сохранена');
   }
 
   loadGame() {
@@ -63,13 +65,19 @@ export default class GameController {
 
     this.gameState = new GameState();
     this.gameState.level = loadState.level;
+    this.teamAi.characters.length = 0;
+    this.teamUser.characters.length = 0;
     this.gameState.positions = loadState.positions;
     loadState.positions.forEach((item) => {
       this.gameState.occupiedPositions.add(item.position);
+      Object.setPrototypeOf(item.character, Character.prototype);
+      item.character.lordAi
+        ? this.teamAi.characters.push(item.character)
+        : this.teamUser.characters.push(item.character);
     });
     this.gamePlay.drawUi(themes[this.gameState.level]);
     this.gamePlay.redrawPositions(this.gameState.positions);
-    console.log('loaded');
+    GamePlay.showMessage('Игра загружена');
   }
 
   endGame() {
@@ -78,7 +86,7 @@ export default class GameController {
     }
     this.selectedCell = null;
     this.selectedChar = null;
-    this.removeListeners();
+    this.removeCellListeners();
   }
 
   teamsInit(level) {
@@ -101,7 +109,6 @@ export default class GameController {
       default:
         break;
     }
-    this.teamAi = new Team('ai', level, this.teamUser.characters.length);
 
     let position = null;
     // разбрасываем команду игрока
@@ -112,6 +119,8 @@ export default class GameController {
       this.gameState.occupiedPositions.add(position);
       this.gameState.positions.push(new PositionedCharacter(char, position));
     }
+    // генерим команду ИИ
+    this.teamAi = new Team('ai', level, this.teamUser.characters.length);
     // разбрасываем команду ИИ
     for (const char of this.teamAi.characters) {
       do {
@@ -132,47 +141,59 @@ export default class GameController {
    * !! формула некорректна? переписал формулу похоже на описание
    */
   async levelUp() {
-    this.teamAi.length = 0;
-    this.gameState.positions.length = 0;
     this.gameState.occupiedPositions.clear();
     this.selectedCell = null;
     this.selectedChar = null;
     this.gameState.playerMove = true;
-    this.teamUser.characters = this.teamUser.characters.filter((char) => char.health > 0);
-    this.teamUser.characters.forEach((item) => item.levelUp());
+
+    this.gameState.positions
+      .filter((item) => item.character.lordAi === false)
+      .filter((item) => item.health > 0);
+
+    this.teamUser.characters.length = 0;
+    this.gameState.positions.forEach((item) => {
+      this.teamUser.characters.push(item.character);
+    });
+    this.gameState.positions.length = 0;
+    this.teamUser.characters.forEach((item) => {
+      Object.setPrototypeOf(item, Character.prototype);
+      item.levelUp();
+    });
+
     this.gameState.level += 1;
     this.teamsInit(this.gameState.level);
+
     this.gamePlay.drawUi(themes[this.gameState.level]);
     this.gamePlay.redrawPositions(this.gameState.positions);
   }
 
   async turnAI() {
-    // ! take random ai char and put him into gameState
-    const attackers = this.gameState.positions.filter((char) => char.character.lordAi === true);
+    // take random ai char and put him into gameState
+    const attackers = this.gameState.positions.filter((item) => item.character.lordAi === true);
     if (attackers.length === 0) {
       return;
     }
     this.selectedChar = attackers[Math.floor(Math.random() * attackers.length)];
 
-    // ! show him on the board
+    // show him on the board
     this.selectChar(this.selectedChar.position);
 
-    // ! take his ranges
+    // take his ranges
     const { attackDistance, moveDistance } = this.selectedChar.character;
 
-    // ! take user chars from the board
-    const victims = this.gameState.positions.filter((char) => char.character.lordAi === false);
+    // take user chars from the board
+    const victims = this.gameState.positions.filter((item) => item.character.lordAi === false);
 
-    // ! check attack ranges to these chars
+    // check attack ranges to these chars
     const victim = victims.find((item) =>
       this.checkAttackRange(item.position, this.selectedChar.position, attackDistance)
     );
 
     if (victim) {
-      // ! if someone is in range, attack him
+      // if someone is in range, attack him
       await this.attackOpponent(victim.position);
     } else {
-      // ! else move towards nearest
+      // else move towards nearest
       // find nearest user char
       const nearest = Math.min(
         ...victims.map((item) => this.getDistance(item.position, this.selectedChar.position))
@@ -242,15 +263,16 @@ export default class GameController {
               ? aiCharCoord[i]
               : aiCharCoord[i] - Math.sign(diffCoord[i]);
         }
-        if (aiCharCoord[0] === aiCharCoordOld[0] && aiCharCoord[1] === aiCharCoordOld[1]) break; // smartest way is to pass the turn to the another AI char, but next time
+        if (aiCharCoord[0] === aiCharCoordOld[0] && aiCharCoord[1] === aiCharCoordOld[1]) break;
+        // the smartest way is to pass the turn to the another AI char here, but i'll do it next time
       }
       this.moveChar(this.calculateIndex(aiCharCoord));
     }
-    // ! clear cell selection
+    // clear cell selection
     for (let i = 0; i < 64; i += 1) {
       this.gamePlay.deselectCell(i);
     }
-    // ! clear active char
+    // clear active char
     this.selectedChar = null;
     this.gamePlay.setCursor(cursors.auto);
   }
@@ -469,6 +491,7 @@ export default class GameController {
   }
 
   async attackOpponent(index) {
+    this.removeCellListeners();
     // shoot'em down
     const attacked = this.gameState.positions.find((item) => item.position === index);
     const attackPoints = this.selectedChar.character.attack;
@@ -481,6 +504,7 @@ export default class GameController {
       this.selectPointer(index);
     });
     this.gameState.playerMove = !this.gameState.playerMove;
+    this.addCellListeners();
     if (this.gameState.positions.findIndex((item) => item.character.lordAi === true) === -1) {
       GamePlay.showMessage(`Level ${this.gameState.level} cleared!`);
       if (this.gameState.level !== 4) {

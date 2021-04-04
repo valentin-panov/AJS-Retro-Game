@@ -7,6 +7,7 @@ export default class GameState {
     this.occupiedPositions = new Set();
     this.playerMove = true;
     this.level = 1;
+    //! cannot find any usability in counting and storing any points - they didnt show up anywhere
   }
 
   static from(object) {

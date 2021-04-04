@@ -19,6 +19,7 @@ export default class Character {
 
   levelUp() {
     if (this.health <= 0) {
+      // dead should rest in peace
       return;
     }
     this.attack = Math.max(this.attack, Math.round(this.attack * (0.8 + this.health / 100)));
