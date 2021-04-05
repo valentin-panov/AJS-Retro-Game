@@ -1,7 +1,5 @@
 // ! tests
-/** 1) 4 utils.js - corners selection
- * 2) Не забудьте написать тесты на то, что исключение выбрасывается при создании
- * объекта класса Character и не выбрасывается, при создании объектов унаследованных классов.
+/**
  * 3) Не забудьте написать тесты на тегированный шаблон tooltip
  * 4) Не забудьте написать авто-тесты на функции/методы, которые лежат в
  * основе п.1-4 (cursors)
@@ -26,13 +24,14 @@ export default class GameController {
   }
 
   init() {
-    // this.loadGame() ?
     this.teamsInit(this.gameState.level);
     this.gamePlay.drawUi(themes[this.gameState.level]);
     this.gamePlay.redrawPositions(this.gameState.positions);
     this.addGameListeners();
     this.addCellListeners();
-    // TODO: load saved stated from stateService
+    if (this.stateService.load()) {
+      this.loadGame();
+    }
   }
 
   addGameListeners() {
@@ -332,9 +331,7 @@ export default class GameController {
   moveChar(index) {
     this.gameState.occupiedPositions.delete(this.selectedChar.position);
     this.gamePlay.deselectCell(this.selectedCell);
-    this.gamePlay.selectCell(index);
-    this.selectedCell = index;
-    this.selectedChar.position = index;
+    this.selectedChar.position = index; // here we auto redraw index in gameState.positions
     this.gameState.occupiedPositions.add(index);
     this.gamePlay.redrawPositions(this.gameState.positions);
     this.gameState.playerMove = !this.gameState.playerMove;
