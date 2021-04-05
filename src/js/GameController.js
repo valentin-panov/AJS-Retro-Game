@@ -27,8 +27,15 @@ export default class GameController {
   addGameListeners() {
     this.gamePlay.addNewGameListener(this.newGame.bind(this));
     this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
-    // load game listen is active only after saving
-    // this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
+    if (this.stateService.load()) {
+      this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
+    }
+  }
+
+  removeGameListeners() {
+    this.gamePlay.newGameListeners.length = 0;
+    this.gamePlay.saveGameListeners.length = 0;
+    this.gamePlay.loadGameListeners.length = 0;
   }
 
   addCellListeners() {
@@ -44,6 +51,8 @@ export default class GameController {
   }
 
   newGame() {
+    this.removeGameListeners();
+    this.removeCellListeners();
     this.gameState = new GameState();
     this.selectedChar = null;
     this.selectedCell = null;
@@ -51,15 +60,21 @@ export default class GameController {
     this.gamePlay.drawUi(themes[this.gameState.level]);
     this.gamePlay.redrawPositions(this.gameState.positions);
     GamePlay.showMessage('Новая игра');
+    this.addGameListeners();
+    this.addCellListeners();
   }
 
   saveGame() {
+    this.removeGameListeners();
     this.stateService.save(this.gameState);
     GamePlay.showMessage('Игра сохранена');
-    this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
+    this.addGameListeners();
   }
 
   loadGame() {
+    this.removeCellListeners();
+    this.removeGameListeners();
+
     let loadState = null;
     try {
       loadState = this.stateService.load();
@@ -86,6 +101,8 @@ export default class GameController {
     this.gamePlay.drawUi(themes[this.gameState.level]);
     this.gamePlay.redrawPositions(this.gameState.positions);
     GamePlay.showMessage('Игра загружена');
+    this.addCellListeners();
+    this.addGameListeners();
   }
 
   teamsInit(level) {
