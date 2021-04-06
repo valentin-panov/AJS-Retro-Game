@@ -231,10 +231,6 @@ export default class GameController {
     } catch (error) {
       console.log(error); // 2 catch error hideCellTooltip shows after levelUp
     }
-    this.gamePlay.hideCellTooltip(index);
-    if (this.selectedChar && index !== this.selectedChar.position) {
-      this.gamePlay.deselectCell(index);
-    }
   }
 
   selectPointer(index) {
