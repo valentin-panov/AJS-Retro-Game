@@ -22,7 +22,7 @@ beforeEach(() => {
   container.setAttribute('id', 'game-container');
   gamePlay = new GamePlay();
   gamePlay.bindToDOM(container);
-  stateService = new GameStateService(localStorage); // ! localStorage?
+  stateService = new GameStateService(localStorage);
   gameController = new GameController(gamePlay, stateService);
   gameController.init();
   gameController.teamUser.characters.length = 0;
