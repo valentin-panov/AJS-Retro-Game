@@ -1,3 +1,4 @@
+/* eslint-disable no-alert */
 import themes from './themes';
 import cursors from './cursors';
 import GamePlay from './GamePlay';
@@ -20,7 +21,11 @@ export default class GameController {
     this.addGameListeners();
     this.addCellListeners();
     if (this.stateService.load()) {
-      this.loadGame();
+      // eslint-disable-next-line no-restricted-globals
+      const result = confirm('Загрузить игру из сохранения?');
+      if (result) {
+        this.loadGame();
+      }
     }
   }
 
