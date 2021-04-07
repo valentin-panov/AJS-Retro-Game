@@ -196,10 +196,10 @@ test('gameController.moveChar should move selected char within move range', () =
   expect(gameController.selectedChar).toEqual(expected);
 });
 
-// ! async code test
 test('gameController.attackOpponent should damage ai char within attack range', async () => {
   const expected = gameController.gameState.positions[1].character.health;
   gameController.selectChar(0);
+  gameController.gamePlay.showDamage = jest.fn(() => Promise.resolve('test'));
   await gameController.attackOpponent(1);
   expect(gameController.gameState.positions[1].character.health).toBeLessThan(expected);
 });
