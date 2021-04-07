@@ -83,8 +83,8 @@ export default class GameController {
     let loadState = null;
     try {
       loadState = this.stateService.load();
-    } catch (e) {
-      GamePlay.message('Load game error:', e);
+    } catch (err) {
+      GamePlay.message('Load game error:', err);
       return;
     }
 
@@ -202,7 +202,6 @@ export default class GameController {
         }
       }
     }
-    // TODO: react to click
   }
 
   onCellEnter(index) {
@@ -229,7 +228,7 @@ export default class GameController {
         this.gamePlay.deselectCell(index);
       }
     } catch (error) {
-      console.log(error); // 2 catch error hideCellTooltip shows after levelUp
+      // 2 catch error hideCellTooltip shows after levelUp
     }
   }
 
@@ -493,7 +492,7 @@ export default class GameController {
     this.gameState.playerMove = !this.gameState.playerMove;
     if (this.gameState.positions.findIndex((item) => item.character.lordAi === true) === -1) {
       if (this.gameState.level !== 4) {
-        await this.levelUp();
+        this.levelUp();
       } else {
         this.endGame();
       }
@@ -516,7 +515,7 @@ export default class GameController {
    * Если же жизни осталось 1%, то показатели никак не увеличатся.
    * !! формула некорректна? переписал формулу похоже на описание
    */
-  async levelUp() {
+  levelUp() {
     this.gameState.occupiedPositions.clear();
     this.selectedCell = null;
     this.selectedChar = null;
