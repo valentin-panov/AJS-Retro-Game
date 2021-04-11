@@ -1,21 +1,10 @@
 /* eslint-disable no-undef */
-
-// ! tests
-/**
- * 4) Не забудьте написать авто-тесты на функции/методы, которые лежат в
- * основе п.1-4 (cursors)
- * 5) Напишите авто-тест, с моком для метода load, который проверяет реакцию вашего
- *  приложения на успешную и не успешную загрузку (при неуспешной загрузке
- * должно выводиться сообщение через GamePlay - подумайте, как вы это будете тестировать).
- */
-
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { expect, jest } from '@jest/globals';
 import GamePlay from '../GamePlay';
 import GameController from '../GameController';
 import GameStateService from '../GameStateService';
 import cursors from '../cursors';
-// import Character from '../Character';
 
 let gamePlay;
 let stateService;
