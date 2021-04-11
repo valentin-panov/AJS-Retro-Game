@@ -229,3 +229,18 @@ test('gameController.levelUp should up the level for survived user chars', () =>
   expect(gameController.teamUser.characters[0].health).toBe(100);
   expect(gameController.teamUser.characters[0].level).toBe(2);
 });
+
+test('gameController.endGame should count end score, deselect all cells, clear selectedCell and selectedChar, remove cell listeners, set cursor to notallowed and show up endGame message with score', () => {
+  GamePlay.showMessage = jest.fn();
+  gameController.gamePlay.deselectCell = jest.fn();
+  gameController.removeCellListeners = jest.fn();
+  gameController.gamePlay.setCursor = jest.fn();
+  gameController.endGame();
+
+  expect(gameController.gamePlay.deselectCell).toBeCalledTimes(64);
+  expect(gameController.selectedCell).toBe(null);
+  expect(gameController.selectedChar).toBe(null);
+  expect(gameController.removeCellListeners).toBeCalledTimes(1);
+  expect(gameController.gamePlay.setCursor).toBeCalledWith(cursors.notallowed);
+  expect(GamePlay.showMessage).toBeCalledWith('Вы победили co cчётом: 50');
+});

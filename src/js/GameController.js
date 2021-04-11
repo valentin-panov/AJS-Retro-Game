@@ -554,13 +554,10 @@ export default class GameController {
   }
 
   endGame() {
-    this.gameState.positions
-      .filter((item) => item.character.lordAi === false)
-      .filter((item) => item.health > 0);
-    this.gameState.userStats += this.gameState.positions.reduce(
-      (acc, prev) => acc + prev.character.health,
-      0
-    );
+    const alive = this.gameState.positions
+      .filter((item) => !item.character.lordAi)
+      .filter((item) => item.character.health > 0);
+    this.gameState.userStats += alive.reduce((acc, item) => acc + item.character.health, 0);
     for (let i = 0; i < 64; i += 1) {
       this.gamePlay.deselectCell(i);
     }
