@@ -1,9 +1,10 @@
 export default class Character {
-  constructor(level, type = 'generic') {
+  constructor(level, type = 'generic', name) {
     if (new.target.name === 'Character') {
       // нельзя создать просто Character
       throw new Error("new Character() won't pass");
     }
+    this.name = name;
     this.level = level;
     this.attack = 0;
     this.defence = 0;
@@ -19,8 +20,7 @@ export default class Character {
 
   levelUp() {
     if (this.health <= 0) {
-      // dead should rest in peace
-      return;
+      throw new Error('dead should rest in peace');
     }
     this.attack = Math.max(this.attack, Math.round(this.attack * (0.8 + this.health / 100)));
     this.defence = Math.max(this.defence, Math.round(this.defence * (0.8 + this.health / 100)));

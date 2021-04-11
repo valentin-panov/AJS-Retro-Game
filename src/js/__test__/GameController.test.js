@@ -197,9 +197,35 @@ test('gameController.moveChar should move selected char within move range', () =
 });
 
 test('gameController.attackOpponent should damage ai char within attack range', async () => {
-  const expected = gameController.gameState.positions[1].character.health;
+  let expected = gameController.gameState.positions[1].character.health;
   gameController.selectChar(0);
   gameController.gamePlay.showDamage = jest.fn(() => Promise.resolve('showDamage'));
+  const attackPoints = gameController.selectedChar.character.attack;
+  const defencePoints = gameController.gameState.positions[1].character.defence;
+  const damage = Math.round(Math.max(attackPoints - defencePoints, attackPoints * 0.1));
+  expected -= damage;
   await gameController.attackOpponent(1);
-  expect(gameController.gameState.positions[1].character.health).toBeLessThan(expected);
+  expect(gameController.gameState.positions[1].character.health).toBe(expected);
+});
+
+test('gameController.checkDeathStatus should check char.health and delete from gameState him if health <= 0', () => {
+  gameController.selectChar(0);
+  gameController.selectedChar.character.health = -1;
+  gameController.checkDeathStatus(0);
+  expect(gameController.gameState.positions.length).toBe(1);
+  expect(gameController.gameState.occupiedPositions.size).toBe(1);
+});
+
+test('gameController.levelUp should up the level for survived user chars', () => {
+  GamePlay.showMessage = jest.fn();
+  gameController.selectChar(0);
+  gameController.selectedChar.character.health = 20;
+  gameController.teamAi.characters.length = 0;
+  gameController.gameState.positions.length = 1;
+  gameController.gameState.level = 1;
+  gameController.levelUp();
+  expect(gameController.gameState.positions.length).toBe(4);
+  expect(gameController.gameState.occupiedPositions.size).toBe(4);
+  expect(gameController.teamUser.characters[0].health).toBe(100);
+  expect(gameController.teamUser.characters[0].level).toBe(2);
 });

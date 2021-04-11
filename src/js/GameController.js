@@ -462,20 +462,6 @@ export default class GameController {
     this.gamePlay.setCursor(cursors.auto);
   }
 
-  checkDeathStatus(index) {
-    const attacked = this.gameState.positions.find((item) => item.position === index);
-    if (attacked.character.health <= 0) {
-      this.gameState.positions.splice(
-        this.gameState.positions.findIndex((item) => item.position === index),
-        1
-      );
-      for (let i = 0; i < 64; i += 1) {
-        this.gamePlay.deselectCell(i);
-      }
-      this.gameState.occupiedPositions.delete(index);
-    }
-  }
-
   async attackOpponent(index) {
     this.removeCellListeners();
     // shoot'em down
@@ -506,6 +492,20 @@ export default class GameController {
     }
   }
 
+  checkDeathStatus(index) {
+    const attacked = this.gameState.positions.find((item) => item.position === index);
+    if (attacked.character.health <= 0) {
+      this.gameState.positions.splice(
+        this.gameState.positions.findIndex((item) => item.position === index),
+        1
+      );
+      for (let i = 0; i < 64; i += 1) {
+        this.gamePlay.deselectCell(i);
+      }
+      this.gameState.occupiedPositions.delete(index);
+    }
+  }
+
   /**
    * levelUp
    * Повышение показателей атаки/защиты также привязаны к оставшейся жизни по формуле:
@@ -526,6 +526,7 @@ export default class GameController {
       .filter((item) => item.health > 0);
 
     this.teamUser.characters.length = 0;
+    this.teamAi.characters.length = 0;
     this.gameState.positions.forEach((item) => {
       this.teamUser.characters.push(item.character);
     });
