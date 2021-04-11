@@ -5,6 +5,7 @@ import GamePlay from '../GamePlay';
 import GameController from '../GameController';
 import GameStateService from '../GameStateService';
 import cursors from '../cursors';
+import themes from '../themes';
 
 let gamePlay;
 let stateService;
@@ -34,13 +35,32 @@ test('gameController.loadGame() calls gameController.stateService.load(), if loa
   expect(() => gameController.loadGame()).toThrow();
 });
 
-// ! пока не разобрался, почему оно крашится
-// ! TypeError: Cannot read property 'level' of null
-// test('gameController.loadGame() calls gameController.stateService.load(), in success case deploys a saved game and shows success message', () => {
-//   GamePlay.showMessage = jest.fn();
-//   gameController.loadGame();
-//   expect(GamePlay.showMessage).toHaveBeenCalledWith('Игра загружена');
-// });
+test('gameController.loadGame() calls gameController.stateService.load(), in success case deploys a saved game and shows success message', () => {
+  gameController.stateService.load = jest.fn(() => gameController.gameState);
+  gameController.gamePlay.drawUi = jest.fn();
+  gameController.gamePlay.redrawPositions = jest.fn();
+  GamePlay.showMessage = jest.fn();
+  gameController.removeCellListeners = jest.fn();
+  gameController.removeGameListeners = jest.fn();
+  gameController.addCellListeners = jest.fn();
+  gameController.addGameListeners = jest.fn();
+  gameController.loadGame();
+  expect(gameController.removeCellListeners).toHaveBeenCalled();
+  expect(gameController.removeGameListeners).toHaveBeenCalled();
+  expect(gameController.selectedChar).toBe(null);
+  expect(gameController.selectedCell).toBe(null);
+  expect(gameController.gameState.positions.length).toBeGreaterThan(0);
+  expect(gameController.teamUser.characters.length).toBeGreaterThan(0);
+  expect(gameController.gamePlay.drawUi).toHaveBeenCalledWith(
+    themes[gameController.gameState.level]
+  );
+  expect(gameController.gamePlay.redrawPositions).toHaveBeenCalledWith(
+    gameController.gameState.positions
+  );
+  expect(GamePlay.showMessage).toHaveBeenCalledWith('Игра загружена');
+  expect(gameController.addCellListeners).toHaveBeenCalled();
+  expect(gameController.addGameListeners).toHaveBeenCalled();
+});
 
 test('gamePlay.showCellTooltip should trigger on mouse over occupied cell', () => {
   gameController.gamePlay.showCellTooltip = jest.fn();
