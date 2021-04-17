@@ -1,8 +1,8 @@
 import Character from '../Character';
 
 export default class Swordsman extends Character {
-  constructor(name = 'Anonim', level = 1) {
-    super(level, 'swordsman', name);
+  constructor(...args) {
+    super('swordsman', ...args);
     this.attack = 40;
     this.defence = 10;
     this.attackDistance = 1;

@@ -12,8 +12,23 @@ export default class GameController {
     this.gamePlay = gamePlay || new GamePlay();
     this.stateService = stateService;
     this.gameState = new GameState();
+
+    // Get all defined class methods
+    const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
+    // Bind all methods
+    methods
+      .filter((method) => method !== 'constructor')
+      .forEach((method) => {
+        this[method] = this[method].bind(this);
+      });
   }
 
+  /**
+   * Initialises game essentials.
+   * @this  {gameState}
+   * @see {number} this.gameState.level - actual level.
+   * @see {Array} this.gameState.positions - array of positioned characters.
+   */
   init() {
     this.teamsInit(this.gameState.level);
     this.gamePlay.drawUi(themes[this.gameState.level]);
@@ -30,23 +45,24 @@ export default class GameController {
   }
 
   addGameListeners() {
-    this.gamePlay.addNewGameListener(this.newGame.bind(this));
-    this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
+    this.gamePlay.addNewGameListener(this.newGame);
+    this.gamePlay.addSaveGameListener(this.saveGame);
     if (this.stateService.load()) {
-      this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
+      this.gamePlay.addLoadGameListener(this.loadGame);
     }
   }
 
   removeGameListeners() {
+    // ! "Это странный хак." - а как иначе? я не смог разобраться (
     this.gamePlay.newGameListeners.length = 0;
     this.gamePlay.saveGameListeners.length = 0;
     this.gamePlay.loadGameListeners.length = 0;
   }
 
   addCellListeners() {
-    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
-    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
-    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
+    this.gamePlay.addCellEnterListener(this.onCellEnter);
+    this.gamePlay.addCellLeaveListener(this.onCellLeave);
+    this.gamePlay.addCellClickListener(this.onCellClick);
   }
 
   removeCellListeners() {
@@ -110,11 +126,18 @@ export default class GameController {
     this.addGameListeners();
   }
 
+  /**
+   * Genetates teams for user and AI.
+   *
+   * @this  {gameState}
+   * @param {number} level - actual game level.
+   * @see {this.teamUser.addChar} @param {number} - adds a char to the team with this maximum possible level
+   */
   teamsInit(level) {
-    // создаём начальные команды игрока и компьютера
+    // generate user team
     switch (level) {
       case 1:
-        this.teamUser = new Team('User', level, 2);
+        this.teamUser = new Team('User');
         break;
       case 2:
         this.teamUser.addChar(1);
@@ -131,21 +154,27 @@ export default class GameController {
         break;
     }
 
-    let position = null;
-    // разбрасываем команду игрока
-    for (const char of this.teamUser.characters) {
-      do {
-        position = Math.floor(0 + Math.random() * 7) * 8 + Math.floor(0 + Math.random() * 2);
-      } while (this.gameState.occupiedPositions.has(position));
-      this.gameState.occupiedPositions.add(position);
-      this.gameState.positions.push(new PositionedCharacter(char, position));
-    }
-    // генерим команду ИИ
+    // spread user chars
+    this.spreadTheTeam(this.teamUser);
+
+    // generate AI team
     this.teamAi = new Team('ai', level, this.teamUser.characters.length);
-    // разбрасываем команду ИИ
-    for (const char of this.teamAi.characters) {
+
+    // spread AI chars
+    this.spreadTheTeam(this.teamAi);
+  }
+
+  spreadTheTeam(team) {
+    let position = null;
+    const { boardSize } = this.gamePlay;
+    const possibleField = 2; // width of the team column
+    const side = team.lordAi ? boardSize - possibleField : 0;
+    for (const char of team.characters) {
       do {
-        position = Math.floor(0 + Math.random() * 7) * 8 + Math.floor(0 + Math.random() * 2) + 6;
+        position =
+          Math.floor(Math.random() * boardSize) * boardSize +
+          Math.floor(Math.random() * possibleField) +
+          side;
       } while (this.gameState.occupiedPositions.has(position));
       this.gameState.occupiedPositions.add(position);
       this.gameState.positions.push(new PositionedCharacter(char, position));
@@ -205,20 +234,22 @@ export default class GameController {
   }
 
   onCellEnter(index) {
-    // show tooltip
-    if (this.gameState.occupiedPositions.has(index)) {
-      const { level, attack, defence, health } = this.gameState.positions.find(
-        (char) => char.position === index
-      ).character;
-      const message = `${String.fromCodePoint(127894) + level} ${String.fromCodePoint(
-        9876
-      )}${attack} ${String.fromCodePoint(128737)}${defence} ${String.fromCodePoint(
-        10084
-      )}${health}`;
-      this.gamePlay.showCellTooltip(message, index);
-    }
     // ranges concern
     this.selectPointer(index);
+
+    // if there is clear cell, do nthg
+    if (!this.gameState.occupiedPositions.has(index)) {
+      return;
+    }
+
+    // else show tooltip
+    const { level, attack, defence, health } = this.gameState.positions.find(
+      (char) => char.position === index
+    ).character;
+    const message = `${String.fromCodePoint(127894) + level} ${String.fromCodePoint(
+      9876
+    )}${attack} ${String.fromCodePoint(128737)}${defence} ${String.fromCodePoint(10084)}${health}`;
+    this.gamePlay.showCellTooltip(message, index);
   }
 
   onCellLeave(index) {

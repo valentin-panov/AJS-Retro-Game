@@ -1,15 +1,16 @@
 export default class Character {
-  constructor(level, type = 'generic', name) {
+  constructor(type, ...args) {
     if (new.target.name === 'Character') {
       // нельзя создать просто Character
       throw new Error("new Character() won't pass");
     }
-    this.name = name;
-    this.level = level;
+    const { name, level } = args;
+    this.name = name || Math.random().toString(36).substring(7);
+    this.level = level || 1;
     this.attack = 0;
     this.defence = 0;
     this.health = 50;
-    this.type = type;
+    this.type = type || 'generic';
     if (type !== 'bowman' && type !== 'magician' && type !== 'swordsman') {
       this.lordAi = true;
     }
