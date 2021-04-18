@@ -17,7 +17,7 @@ export default class Character {
   }
 
   /**
-   * Propagate char characteristics according its remained health points
+   * Increase char characteristics according its remained health points
    */
   levelUp() {
     if (this.health <= 0) {
