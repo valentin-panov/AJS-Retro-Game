@@ -33,6 +33,15 @@ export default class Team {
    * @param {number} level - maximum possible character level.
    */
   addChar(level) {
-    this.characters.push(characterGenerator(this.typos, level).next().value);
+    const char = characterGenerator(this.typos, level).next().value;
+    // increase char stats according its level
+    if (char.level !== 1) {
+      const max = char.level;
+      for (let j = 1; j < max; j += 1) {
+        char.levelUp();
+        char.level -= 1;
+      }
+    }
+    this.characters.push(char);
   }
 }

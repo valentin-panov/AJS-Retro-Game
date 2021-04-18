@@ -16,8 +16,16 @@ export function* characterGenerator(allowedTypes, maxLevel) {
 export function generateTeam(allowedTypes, maxLevel, characterCount) {
   const team = [];
   for (let i = 0; i < characterCount; i += 1) {
-    team.push(characterGenerator(allowedTypes, maxLevel).next().value);
+    const char = characterGenerator(allowedTypes, maxLevel).next().value;
+    // increase char stats according its level
+    if (char.level !== 1) {
+      const max = char.level;
+      for (let j = 1; j < max; j += 1) {
+        char.levelUp();
+        char.level -= 1;
+      }
+    }
+    team.push(char);
   }
-  // ! characters shouldnt be upgraded according to their level?
   return team;
 }
