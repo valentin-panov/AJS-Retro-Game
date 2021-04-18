@@ -7,9 +7,17 @@ import Team from './Team';
 import Character from './Character';
 import PositionedCharacter from './PositionedCharacter';
 
+/**
+ * Controls the game process.
+ *
+ * @constructor
+ * @param {Object} gamePlay - some unchangable game mechanics.
+ * @param {Object} stateService - save/load game service.
+ */
 export default class GameController {
   constructor(gamePlay, stateService) {
     this.gamePlay = gamePlay || new GamePlay();
+    this.gamePlay.possibleField = 2; // number of columns for team deployment
     this.stateService = stateService;
     this.gameState = new GameState();
 
@@ -25,9 +33,9 @@ export default class GameController {
 
   /**
    * Initialises game essentials.
-   * @this  {gameState}
-   * @see {number} this.gameState.level - actual level.
-   * @see {Array} this.gameState.positions - array of positioned characters.
+   *
+   * @lends {number} this.gameState.level - actual level.
+   * @lends {Array} this.gameState.positions - array of positioned characters.
    */
   init() {
     this.teamsInit(this.gameState.level);
@@ -44,6 +52,12 @@ export default class GameController {
     }
   }
 
+  /**
+   * Adds click listeners on new-save-load buttons
+   *
+   * if there is saved game and this.stateService.load() returns true,
+   * LoadGame listener should be activated too
+   */
   addGameListeners() {
     this.gamePlay.addNewGameListener(this.newGame);
     this.gamePlay.addSaveGameListener(this.saveGame);
@@ -52,6 +66,9 @@ export default class GameController {
     }
   }
 
+  /**
+   * Removes click listeners on new-save-load buttons
+   */
   removeGameListeners() {
     // ! "Это странный хак." - а как иначе? я не смог разобраться (
     this.gamePlay.newGameListeners.length = 0;
@@ -59,25 +76,42 @@ export default class GameController {
     this.gamePlay.loadGameListeners.length = 0;
   }
 
+  /**
+   * Adds listeners on cells: over, click, leave
+   */
   addCellListeners() {
     this.gamePlay.addCellEnterListener(this.onCellEnter);
     this.gamePlay.addCellLeaveListener(this.onCellLeave);
     this.gamePlay.addCellClickListener(this.onCellClick);
   }
 
+  /**
+   * Removes listeners on cells
+   */
   removeCellListeners() {
     this.gamePlay.cellEnterListeners.length = 0;
     this.gamePlay.cellLeaveListeners.length = 0;
     this.gamePlay.cellClickListeners.length = 0;
   }
 
+  /**
+   * Generates new game
+   *
+   * 1) Removes all listeners for stability reasons,
+   * 2) creates new gameState,
+   * 3) clears selected cell and char
+   * 4) generates new teams
+   * 5) redraws the board
+   * 6) shows 'new game' message
+   * 7) add all listeners
+   */
   newGame() {
     this.removeGameListeners();
     this.removeCellListeners();
     this.gameState = new GameState();
     this.selectedChar = null;
     this.selectedCell = null;
-    this.teamsInit(this.gameState.level);
+    this.teamsInit();
     this.gamePlay.drawUi(themes[this.gameState.level]);
     this.gamePlay.redrawPositions(this.gameState.positions);
     GamePlay.showMessage('Новая игра');
@@ -85,6 +119,14 @@ export default class GameController {
     this.addCellListeners();
   }
 
+  /**
+   * Saves actual game into local storage
+   *
+   * 1) removes game buttons listeners for stability reasons
+   * 2) saves this.gameState through stateService.save()
+   * 3) shows 'save game' message
+   * 4) activates game buttons listeners
+   */
   saveGame() {
     this.removeGameListeners();
     this.stateService.save(this.gameState);
@@ -92,6 +134,14 @@ export default class GameController {
     this.addGameListeners();
   }
 
+  /**
+   * Loads game from local storage through stateService.load()
+   *
+   * 1) removes listeners for stability resons
+   * 2) tries to load game from local:
+   *  If an error occurs within load process, @returns null.
+   *  Else reconstructs gameState from loadState, redraw UI and restore listeners.
+   */
   loadGame() {
     this.removeCellListeners();
     this.removeGameListeners();
@@ -111,6 +161,7 @@ export default class GameController {
     this.teamAi.characters.length = 0;
     this.teamUser.characters.length = 0;
     this.gameState.positions = loadState.positions;
+    this.gameState.userStats = loadState.userStats;
     loadState.positions.forEach((item) => {
       this.gameState.occupiedPositions.add(item.position);
       Object.setPrototypeOf(item.character, Character.prototype);
@@ -127,13 +178,17 @@ export default class GameController {
   }
 
   /**
-   * Genetates teams for user and AI.
+   * Genetates teams for user and AI and places them into gameController.
    *
-   * @this  {gameState}
+   * First switch is used to generate user team, according to
+   * the actual game level and generation rules.
+   * ! WARNING! Magical numbers 1, 2, 3, 4 - are the game level.
+   * Calls this.spreadTheTeam() for each team.
+   *
+   * @this  {gameController}
    * @param {number} level - actual game level.
-   * @see {this.teamUser.addChar} @param {number} - adds a char to the team with this maximum possible level
    */
-  teamsInit(level) {
+  teamsInit(level = 1) {
     // generate user team
     switch (level) {
       case 1:
@@ -164,11 +219,18 @@ export default class GameController {
     this.spreadTheTeam(this.teamAi);
   }
 
+  /**
+   * Spread team within allowed positions.
+   * Looks for an unoccupied cell, gets it and push every char with his position into
+   * positions array.
+   *
+   * @param {Object} team - must contain array of chars and boolean lordAi.
+   */
   spreadTheTeam(team) {
-    let position = null;
-    const { boardSize } = this.gamePlay;
-    const possibleField = 2; // width of the team column
+    const { boardSize, possibleField } = this.gamePlay;
     const side = team.lordAi ? boardSize - possibleField : 0;
+    // AI should be placed on the right side of the board, user on the left
+    let position = null;
     for (const char of team.characters) {
       do {
         position =
@@ -181,6 +243,19 @@ export default class GameController {
     }
   }
 
+  /**
+   * Handle click over cell.
+   *
+   * 1) If cell contains user char,
+   *    calls @function this.selectChar(index)
+   * 2) If cell is empty and located inside moveRange and move trajectory,
+   *    calls @function this.moveChar(index)
+   * 3) If cell contains AI char, and located inside attack range of the selected user char,
+   *    calls @function this.attackOpponent(index)
+   *
+   * @this  {gameController}
+   * @param {number} index - cell index.
+   */
   async onCellClick(index) {
     // select active char
     if (!this.selectedChar && this.gameState.occupiedPositions.has(index)) {
@@ -233,6 +308,14 @@ export default class GameController {
     }
   }
 
+  /**
+   * Handle cursor over cell
+   *
+   * calls point switcher @function this.selectPointer(index)
+   * over occupied cells calls @function this.gamePlay.showCellTooltip(message)
+   *
+   * @param {number} index - cell index
+   */
   onCellEnter(index) {
     // ranges concern
     this.selectPointer(index);
@@ -252,9 +335,15 @@ export default class GameController {
     this.gamePlay.showCellTooltip(message, index);
   }
 
+  /**
+   * Hides tooltip, if it was showed
+   *
+   * @param {number} index - cell index
+   */
   onCellLeave(index) {
     try {
       this.gamePlay.hideCellTooltip(index);
+      // next 3 rows r need to deselect cells when mouse leave it
       if (this.selectedChar && index !== this.selectedChar.position) {
         this.gamePlay.deselectCell(index);
       }
@@ -263,9 +352,16 @@ export default class GameController {
     }
   }
 
+  /**
+   * Changes mouse pointer over cell according to its content and position
+   *
+   * @param {number} index - cell index
+   */
+
   selectPointer(index) {
     this.gamePlay.setCursor(cursors.auto);
 
+    // char isnt selected, cell is occupied => ai(notallowed) : user(pointer)
     if (this.gameState.occupiedPositions.has(index)) {
       if (!this.gameState.positions.find((char) => char.position === index).character.lordAi) {
         this.gamePlay.setCursor(cursors.pointer);
@@ -274,6 +370,7 @@ export default class GameController {
       }
     }
 
+    // char is selected, check move and attack possibilities
     if (this.selectedChar && index !== this.selectedChar.position) {
       const { attackDistance, moveDistance } = this.selectedChar.character;
       const charCoord = this.selectedChar.position;
@@ -291,9 +388,6 @@ export default class GameController {
           const { lordAi } = this.gameState.positions.find(
             (char) => char.position === index
           ).character;
-          if (!lordAi) {
-            this.gamePlay.setCursor(cursors.pointer);
-          }
           if (lordAi) {
             this.gamePlay.setCursor(cursors.crosshair);
             this.gamePlay.selectCell(index, 'red');
@@ -302,10 +396,10 @@ export default class GameController {
         }
         // non-empty out attack range
         case this.gameState.occupiedPositions.has(index):
-          if (!this.gameState.positions.find((char) => char.position === index).character.lordAi) {
-            this.gamePlay.setCursor(cursors.pointer);
-          } else {
+          if (this.gameState.positions.find((char) => char.position === index).character.lordAi) {
             this.gamePlay.setCursor(cursors.notallowed);
+          } else {
+            this.gamePlay.setCursor(cursors.pointer);
           }
           break;
         default:
@@ -314,6 +408,12 @@ export default class GameController {
     }
   }
 
+  /**
+   * Calculate binar coordinates from index
+   *
+   * @param {number} index - cell index
+   * @returns {Array} - two coordinates
+   */
   calculateCoordinates(index) {
     // charCoord 0 - column 1 - row
     const size = this.gamePlay.boardSize;
@@ -327,11 +427,25 @@ export default class GameController {
     return null;
   }
 
+  /**
+   * Caclulates index from two coordinates
+   *
+   * @param {Array} coordinates - binar coordinates
+   * @returns {number} - cell index
+   */
   calculateIndex(coordinates) {
     const size = this.gamePlay.boardSize;
     return coordinates[1] * size + coordinates[0];
   }
 
+  /**
+   * Checks if indexes are inside attack range
+   *
+   * @param {number} firstIndex
+   * @param {number} secondIndex
+   * @param {number} range
+   * @returns {boolean}
+   */
   checkAttackRange(firstIndex, secondIndex, range) {
     const firstCoord = this.calculateCoordinates(firstIndex);
     const secondCoord = this.calculateCoordinates(secondIndex);
@@ -340,6 +454,13 @@ export default class GameController {
     return range >= distanceRow && range >= distanceColumn;
   }
 
+  /**
+   * Checks if indexes are inside move range and trajectory
+   * @param {number} firstIndex
+   * @param {number} secondIndex
+   * @param {number} range
+   * @returns {boolean}
+   */
   checkMoveRange(firstIndex, secondIndex, range) {
     const firstCoord = this.calculateCoordinates(firstIndex);
     const secondCoord = this.calculateCoordinates(secondIndex);
@@ -352,6 +473,13 @@ export default class GameController {
     );
   }
 
+  /**
+   * Calculates distance between two indexes, used in AI logic
+   *
+   * @param {number} firstIndex
+   * @param {number} secondIndex
+   * @returns {number}
+   */
   getDistance(firstIndex, secondIndex) {
     const firstCoord = this.calculateCoordinates(firstIndex);
     const secondCoord = this.calculateCoordinates(secondIndex);
@@ -360,6 +488,11 @@ export default class GameController {
     return distanceRow + distanceColumn;
   }
 
+  /**
+   * Makes char inside cell selected
+   *
+   * @param {number} index - cell index
+   */
   selectChar(index) {
     // unpaint prev cell
     if (this.selectedCell || this.selectedCell === 0) {
@@ -374,6 +507,11 @@ export default class GameController {
     this.selectedChar = this.gameState.positions.find((char) => char.position === index);
   }
 
+  /**
+   * Moves selected char to the index cell
+   *
+   * @param {number} index - cell index
+   */
   moveChar(index) {
     this.gameState.occupiedPositions.delete(this.selectedChar.position);
     this.gamePlay.deselectCell(this.selectedCell);
@@ -383,6 +521,9 @@ export default class GameController {
     this.gameState.playerMove = !this.gameState.playerMove;
   }
 
+  /**
+   * Whole AI turn logic
+   */
   async turnAI() {
     // take random ai char and put him into gameState
     const attackers = this.gameState.positions.filter((item) => item.character.lordAi === true);
@@ -493,6 +634,15 @@ export default class GameController {
     this.gamePlay.setCursor(cursors.auto);
   }
 
+  /**
+   * Deals damage to char under index,
+   * calls @function this.gamePlay.showDamage(),
+   * then calls @function this.checkDeathStatus() and redraw UI,
+   * then invert @var this.playerMove and pass turn,
+   * if there is no win/loose condition was triggered
+   *
+   * @param {number} index - cell index
+   */
   async attackOpponent(index) {
     this.removeCellListeners();
     // shoot'em down
@@ -523,6 +673,11 @@ export default class GameController {
     }
   }
 
+  /**
+   * Checks health status of the char undex the index and remove it, if health <= 0
+   *
+   * @param {number} index - cell index
+   */
   checkDeathStatus(index) {
     const attacked = this.gameState.positions.find((item) => item.position === index);
     if (attacked.character.health <= 0) {
@@ -538,13 +693,8 @@ export default class GameController {
   }
 
   /**
-   * levelUp
-   * Повышение показателей атаки/защиты также привязаны к оставшейся жизни по формуле:
-   * attackAfter = Math.max(attackBefore, attackBefore * (1.8 - life) / 100),
-   * т.е. если у персонажа после окончания раунда жизни осталось 50%,
-   * то его показатели улучшаться на 30%.
-   * Если же жизни осталось 1%, то показатели никак не увеличатся.
-   * !! формула некорректна? переписал формулу похоже на описание
+   * Clears the board and character sheets, upgrade alive chars, counts userStats points,
+   * ascends game level, initialises new teams and new board
    */
   levelUp() {
     this.gameState.occupiedPositions.clear();
@@ -584,6 +734,9 @@ export default class GameController {
     this.addCellListeners();
   }
 
+  /**
+   * Counts end points, removes cell listeners snd shows win message
+   */
   endGame() {
     const alive = this.gameState.positions
       .filter((item) => !item.character.lordAi)

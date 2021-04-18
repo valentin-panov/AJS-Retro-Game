@@ -1,3 +1,7 @@
+/**
+ * Contains object with pointers names
+ */
+
 const cursors = {
   auto: 'auto',
   pointer: 'pointer',

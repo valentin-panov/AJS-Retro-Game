@@ -1,4 +1,10 @@
-// done
+/**
+ * Calculates tile type based on index
+ *
+ * @param {number} index
+ * @param {number} boardSize
+ * @returns {string} tileType
+ */
 export function calcTileType(index, boardSize) {
   const fullBoard = boardSize ** 2;
   const recalcIndex = index + 1;
@@ -25,6 +31,12 @@ export function calcTileType(index, boardSize) {
   }
 }
 
+/**
+ * Graduate health state according health points
+ *
+ * @param {number} health - health points
+ * @returns {string} health state
+ */
 export function calcHealthLevel(health) {
   if (health < 15) {
     return 'critical';

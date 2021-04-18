@@ -1,3 +1,8 @@
+/**
+ * Parent Character class
+ * @constructor
+ * @var {class} type - some of allowed types
+ */
 export default class Character {
   constructor(type, ...args) {
     if (new.target.name === 'Character') {
@@ -5,7 +10,7 @@ export default class Character {
       throw new Error("new Character() won't pass");
     }
     const { name, level } = args;
-    this.name = name || Math.random().toString(36).substring(7);
+    this.name = name || `R-${Math.random().toString(36).substring(7)}`;
     this.level = level || 1;
     this.attack = 0;
     this.defence = 0;
@@ -19,6 +24,9 @@ export default class Character {
     }
   }
 
+  /**
+   * Propagate char characteristics according its remained health points
+   */
   levelUp() {
     if (this.health <= 0) {
       throw new Error('dead should rest in peace');

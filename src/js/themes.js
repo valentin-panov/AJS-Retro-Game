@@ -1,3 +1,6 @@
+/**
+ * Contains object with themes names
+ */
 const themes = {
   1: 'prairie',
   2: 'desert',

@@ -16,13 +16,16 @@ import Vampire from './Types/vampire';
 export default class Team {
   constructor(lord = 'ai', level = 1, count = 2) {
     if (lord !== 'ai') {
-      this.typos = [Bowman, Magician, Swordsman];
+      this.typos = [Bowman, Swordsman];
       this.lordAi = false;
     } else {
       this.typos = [Daemon, Undead, Vampire];
       this.lordAi = true;
     }
     this.characters = generateTeam(this.typos, level, count);
+    if (!this.lordAi) {
+      this.typos.push(Magician);
+    }
   }
 
   /**
