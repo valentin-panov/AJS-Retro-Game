@@ -4,24 +4,15 @@
  * @var {class} type - some of allowed types
  */
 export default class Character {
-  constructor(type, ...args) {
+  constructor(args) {
     if (new.target.name === 'Character') {
       // нельзя создать просто Character
       throw new Error("new Character() won't pass");
     }
-    const { name, level } = args;
-    this.name = name || `R-${Math.random().toString(36).substring(7)}`;
-    this.level = level || 1;
-    this.attack = 0;
-    this.defence = 0;
+    Object.assign(this, args);
+    this.name = this.name || `R-${Math.random().toString(36).substring(7)}`;
     this.health = 50;
-    this.type = type || 'generic';
-    if (type !== 'bowman' && type !== 'magician' && type !== 'swordsman') {
-      this.lordAi = true;
-    }
-    if (type === 'bowman' || type === 'magician' || type === 'swordsman') {
-      this.lordAi = false;
-    }
+    this.type = this.type || 'generic';
   }
 
   /**
