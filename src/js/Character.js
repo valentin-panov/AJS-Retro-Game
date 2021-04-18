@@ -12,6 +12,7 @@ export default class Character {
     Object.assign(this, args);
     this.name = this.name || `R-${Math.random().toString(36).substring(7)}`;
     this.health = 50;
+    this.level = this.level || 1;
     this.type = this.type || 'generic';
   }
 
