@@ -19,9 +19,9 @@ export function generateTeam(allowedTypes, maxLevel, characterCount) {
     const char = characterGenerator(allowedTypes, maxLevel).next().value;
     // increase char stats according its level
     if (char.level !== 1) {
-      const max = char.level;
-      for (let j = 1; j < max; j += 1) {
+      for (let j = 1; j < char.level; j += 1) {
         char.levelUp();
+        char.health = 50;
         char.level -= 1;
       }
     }
