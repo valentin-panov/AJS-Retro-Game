@@ -575,7 +575,7 @@ export default class GameController {
         // diags
         if (Math.abs(diffCoord[0]) > moveDistance) {
           for (let i = 0; i <= 1; i += 1) {
-            aiCharCoord[i] += moveDistance * Math.sign(diffCoord[i]);
+            aiCharCoord[i] += moveDistance * Math.sign(diffCoord[i]) - 1;
           }
         }
         if (Math.abs(diffCoord[0]) <= moveDistance) {
