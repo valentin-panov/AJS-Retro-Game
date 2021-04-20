@@ -522,119 +522,6 @@ export default class GameController {
   }
 
   /**
-   * Whole AI turn logic
-   */
-  async turnAI() {
-    // take random ai char and put him into gameState
-    const attackers = this.gameState.positions.filter((item) => item.character.lordAi === true);
-    if (attackers.length === 0) {
-      return;
-    }
-    this.selectedChar = attackers[Math.floor(Math.random() * attackers.length)];
-
-    // show him on the board
-    this.selectChar(this.selectedChar.position);
-
-    // take his ranges
-    const { attackDistance, moveDistance } = this.selectedChar.character;
-
-    // take user chars from the board
-    const victims = this.gameState.positions.filter((item) => item.character.lordAi === false);
-
-    // check attack ranges to these chars
-    const victim = victims.find((item) =>
-      this.checkAttackRange(item.position, this.selectedChar.position, attackDistance)
-    );
-
-    if (victim) {
-      // if someone is in range, attack him
-      await this.attackOpponent(victim.position);
-    } else {
-      // else move towards nearest
-      // find nearest user char
-      const nearest = Math.min(
-        ...victims.map((item) => this.getDistance(item.position, this.selectedChar.position))
-      );
-      // get nearest coords
-      const nearestCoord = this.calculateCoordinates(
-        victims[
-          victims
-            .map((item) => this.getDistance(item.position, this.selectedChar.position))
-            .indexOf(nearest)
-        ].position
-      );
-
-      // get attacker coords
-      const aiCharCoord = this.calculateCoordinates(this.selectedChar.position);
-
-      // get direction and distance
-      const diffCoord = [];
-      diffCoord[0] = nearestCoord[0] - aiCharCoord[0];
-      diffCoord[1] = nearestCoord[1] - aiCharCoord[1];
-      if (Math.abs(diffCoord[0]) === Math.abs(diffCoord[1])) {
-        // diags
-        if (Math.abs(diffCoord[0]) > moveDistance) {
-          for (let i = 0; i <= 1; i += 1) {
-            aiCharCoord[i] += moveDistance * Math.sign(diffCoord[i]) - 1;
-          }
-        }
-        if (Math.abs(diffCoord[0]) <= moveDistance) {
-          for (let i = 0; i <= 1; i += 1) {
-            aiCharCoord[i] += diffCoord[i] - Math.sign(diffCoord[i]);
-          }
-        }
-      } else if (diffCoord[0] === 0) {
-        // verticals
-        if (Math.abs(diffCoord[1]) > moveDistance) {
-          aiCharCoord[1] += moveDistance * Math.sign(diffCoord[1]);
-        }
-        if (Math.abs(diffCoord[1]) <= moveDistance) {
-          aiCharCoord[1] += diffCoord[1] - Math.sign(diffCoord[1]);
-        }
-      } else if (diffCoord[1] === 0) {
-        // horizontals
-        if (Math.abs(diffCoord[0]) > moveDistance) {
-          aiCharCoord[0] += moveDistance * Math.sign(diffCoord[0]);
-        }
-        if (Math.abs(diffCoord[0]) <= moveDistance) {
-          aiCharCoord[0] += diffCoord[0] - Math.sign(diffCoord[0]);
-        }
-      } else if (Math.abs(diffCoord[0]) > Math.abs(diffCoord[1])) {
-        // mixed
-        for (let i = 0; i <= 1; i += 1) {
-          aiCharCoord[i] += Math.abs(diffCoord[1]) * Math.sign(diffCoord[i]);
-        }
-      } else if (Math.abs(diffCoord[0]) < Math.abs(diffCoord[1])) {
-        for (let i = 0; i <= 1; i += 1) {
-          aiCharCoord[i] += Math.abs(diffCoord[0]) * Math.sign(diffCoord[i]);
-        }
-      }
-
-      // if new cell isnt empty, reduce moving (if move really was)
-      // get old position
-      const aiCharCoordOld = this.calculateCoordinates(this.selectedChar.position);
-      while (this.gameState.occupiedPositions.has(this.calculateIndex(aiCharCoord))) {
-        for (let i = 0; i <= 1; i += 1) {
-          aiCharCoord[i] =
-            aiCharCoord[i] === aiCharCoordOld[i]
-              ? aiCharCoord[i]
-              : aiCharCoord[i] - Math.sign(diffCoord[i]);
-        }
-        if (aiCharCoord[0] === aiCharCoordOld[0] && aiCharCoord[1] === aiCharCoordOld[1]) break;
-        // the smartest way is to pass the turn to the another AI char here, but i'll do it next time
-      }
-      this.moveChar(this.calculateIndex(aiCharCoord));
-    }
-    // clear cell selection
-    for (let i = 0; i < 64; i += 1) {
-      this.gamePlay.deselectCell(i);
-    }
-    // clear active char
-    this.selectedChar = null;
-    this.gamePlay.setCursor(cursors.auto);
-  }
-
-  /**
    * Deals damage to char under index,
    * calls @function this.gamePlay.showDamage(),
    * then calls @function this.checkDeathStatus() and redraw UI,
@@ -750,5 +637,182 @@ export default class GameController {
     this.removeCellListeners();
     this.gamePlay.setCursor(cursors.notallowed);
     GamePlay.showMessage(`Вы победили co cчётом: ${this.gameState.userStats}`);
+  }
+
+  /**
+   * AI turn logic
+   */
+  async turnAI() {
+    // take user chars from the board
+    const victims = this.gameState.positions.filter((item) => item.character.lordAi === false);
+    // if new cell isnt empty, reduce moving (if move really was)
+    while (!this.gameState.playerMove) {
+      // take AI char and his ranges
+      this.aiSelect();
+      const { attackDistance, moveDistance } = this.selectedChar.character;
+
+      // find someone to attack him
+      const victim = victims.find((item) =>
+        this.checkAttackRange(item.position, this.selectedChar.position, attackDistance)
+      );
+
+      if (victim) {
+        // if someone is in range, attack him
+        // eslint-disable-next-line no-await-in-loop
+        await this.attackOpponent(victim.position);
+      } else {
+        // else move towards nearest
+        this.aiMove(victims, moveDistance);
+      }
+    }
+    // clear cell selection
+    for (let i = 0; i < 64; i += 1) {
+      this.gamePlay.deselectCell(i);
+    }
+    // clear active char
+    this.selectedChar = null;
+    this.gamePlay.setCursor(cursors.auto);
+  }
+
+  /**
+   * Randomly select AI char and put him into gameController.selectedChar
+   */
+  aiSelect() {
+    // take random ai char and put him into gameState
+    const attackers = this.gameState.positions.filter((item) => item.character.lordAi === true);
+    if (attackers.length === 0) {
+      return;
+    }
+    this.selectedChar = attackers[Math.floor(Math.random() * attackers.length)];
+
+    // show him on the board
+    this.selectChar(this.selectedChar.position);
+  }
+
+  /**
+   * Move selected AI char towards nearest user char
+   *
+   * @param {array} victims - array of user chars
+   */
+  aiMove(victims) {
+    const { moveDistance } = this.selectedChar.character;
+    // find nearest user char
+    const nearest = Math.min(
+      ...victims.map((item) => this.getDistance(item.position, this.selectedChar.position))
+    );
+    // get nearest coords
+    const nearestCoord = this.calculateCoordinates(
+      victims[
+        victims
+          .map((item) => this.getDistance(item.position, this.selectedChar.position))
+          .indexOf(nearest)
+      ].position
+    );
+
+    // get attacker coords
+    const aiCharCoord = this.calculateCoordinates(this.selectedChar.position);
+    const aiCharCoordOld = this.calculateCoordinates(this.selectedChar.position);
+
+    // get direction and distance
+    const diffCoord = [];
+    diffCoord[0] = nearestCoord[0] - aiCharCoord[0];
+    diffCoord[1] = nearestCoord[1] - aiCharCoord[1];
+    // debugger;
+    switch (true) {
+      // diags
+      case Math.abs(diffCoord[0]) === Math.abs(diffCoord[1]):
+        switch (true) {
+          case Math.abs(diffCoord[0]) > moveDistance:
+            for (let i = 0; i <= 1; i += 1) {
+              aiCharCoord[i] += moveDistance * Math.sign(diffCoord[i]);
+            }
+            break;
+          case Math.abs(diffCoord[0]) <= moveDistance:
+            for (let i = 0; i <= 1; i += 1) {
+              aiCharCoord[i] += diffCoord[i] - Math.sign(diffCoord[i]);
+            }
+            break;
+          default:
+            break;
+        }
+        break;
+      // verticals
+      case diffCoord[0] === 0:
+        switch (true) {
+          case Math.abs(diffCoord[1]) > moveDistance:
+            aiCharCoord[1] += moveDistance * Math.sign(diffCoord[1]);
+            break;
+          case Math.abs(diffCoord[1]) <= moveDistance:
+            aiCharCoord[1] += diffCoord[1] - Math.sign(diffCoord[1]);
+            break;
+          default:
+            break;
+        }
+        break;
+      // horizontals
+      case diffCoord[1] === 0:
+        switch (true) {
+          case Math.abs(diffCoord[0]) > moveDistance:
+            aiCharCoord[0] += moveDistance * Math.sign(diffCoord[0]);
+            break;
+          case Math.abs(diffCoord[0]) <= moveDistance:
+            aiCharCoord[0] += diffCoord[0] - Math.sign(diffCoord[0]);
+            break;
+          default:
+            break;
+        }
+        break;
+      // mixed
+      case Math.abs(diffCoord[0]) > Math.abs(diffCoord[1]):
+        switch (true) {
+          case Math.abs(diffCoord[1]) > moveDistance:
+            for (let i = 0; i <= 1; i += 1) {
+              aiCharCoord[i] += Math.abs(moveDistance) * Math.sign(diffCoord[i]);
+            }
+            break;
+          case Math.abs(diffCoord[1]) <= moveDistance:
+            for (let i = 0; i <= 1; i += 1) {
+              aiCharCoord[i] += Math.abs(diffCoord[1]) * Math.sign(diffCoord[i]);
+            }
+            break;
+          default:
+            break;
+        }
+        break;
+      case Math.abs(diffCoord[0]) < Math.abs(diffCoord[1]):
+        switch (true) {
+          case Math.abs(diffCoord[0]) > moveDistance:
+            for (let i = 0; i <= 1; i += 1) {
+              aiCharCoord[i] += Math.abs(moveDistance) * Math.sign(diffCoord[i]);
+            }
+            break;
+          case Math.abs(diffCoord[0]) <= moveDistance:
+            for (let i = 0; i <= 1; i += 1) {
+              aiCharCoord[i] += Math.abs(diffCoord[0]) * Math.sign(diffCoord[i]);
+            }
+            break;
+          default:
+            break;
+        }
+        break;
+      default:
+        break;
+    }
+
+    // if new cell isnt empty, reduce moving (if move really was)
+    while (this.gameState.occupiedPositions.has(this.calculateIndex(aiCharCoord))) {
+      for (let i = 0; i <= 1; i += 1) {
+        aiCharCoord[i] =
+          aiCharCoord[i] === aiCharCoordOld[i]
+            ? aiCharCoord[i]
+            : aiCharCoord[i] - Math.sign(diffCoord[i]);
+      }
+      // if move is impossible, pass the turn to another AI char
+      if (aiCharCoord[0] === aiCharCoordOld[0] && aiCharCoord[1] === aiCharCoordOld[1]) {
+        return false;
+      }
+    }
+    this.moveChar(this.calculateIndex(aiCharCoord));
+    return true;
   }
 }
