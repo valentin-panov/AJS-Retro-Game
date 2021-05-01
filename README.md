@@ -1,8 +1,8 @@
 # AJS. Retro Game
 
-[![Build status](https://ci.appveyor.com/api/projects/status/rea1s30lisb3x9v3?svg=true)](https://ci.appveyor.com/project/vapanov/ajs-retro-game)
+[![Build status](https://ci.appveyor.com/api/projects/status/rea1s30lisb3x9v3?svg=true)](https://ci.appveyor.com/project/valentin-panov/ajs-retro-game)
 
-WEB Version: https://vapanov.github.io/AJS-Retro-Game/
+WEB Version: https://valentin-panov.github.io/AJS-Retro-Game/
 
 ###### tags: `netology` `advanced js`
 
