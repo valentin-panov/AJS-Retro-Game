@@ -1,4 +1,4 @@
-# AJS. Retro Game
+# Дипломное задание к курсу «Advanced JavaScript». Retro Game
 
 [![Build status](https://ci.appveyor.com/api/projects/status/kfj2d97tp87e302x?svg=true)](https://ci.appveyor.com/project/vapanov/ajs-retro-game)
 
